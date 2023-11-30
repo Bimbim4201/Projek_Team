@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+from functools import wraps
+
 
 def visualization_lastWord(string):
     """
@@ -22,12 +25,18 @@ def handle_exceptions(func):
             print(f"Error occurred:{e}")
     return wrapper
 
+
+    
+
 class AirplaneCrashes:
-    def __init__(self, data_frame):
+    def __init__(self, data_frame, base_dir):
         """
         This function initializes the AirplaneCrashes class with a DataFrame.
         """
         self.df= data_frame
+        self.base_directory = base_dir
+
+            
 
     @handle_exceptions
     def get_top_operator(self, top_n=20):
@@ -130,6 +139,7 @@ class AirplaneCrashes:
             plt.figure(figsize=(30,20))
             plt.barh (route_count_x[:20], route_count_y[:20])
             plt.xlabel ('Crashes')
+            plt.title(f'Top {top_n} Route ')
 
             plt.show()
         except AttributeError as e:
@@ -248,6 +258,7 @@ class AirplaneCrashes:
             tc_y=type_count['index']
             plt.ylabel('TYPE OF AIRCRAFT')
             plt.barh(tc_x[:20],tc_y[:20])
+            plt.title(f'Top {top_n} Type Of Aircraft')
             plt.xlabel('Crashes')
         except (KeyError, ValueError) as e:
             print(f"Error occurred:{e}")
@@ -292,14 +303,44 @@ class AirplaneCrashes:
         except AttributeError as e:
             print(f"AttributeError occurred:{e}")
 
-     
+base_directory = 'C:\\Users\\vanguard\\OneDrive\\Documents\\GitHub\\OOP-Visualization'      
+       
+def validate_path(file_path):
+    if not os.path.exists(file_path):
+        raise FileNotFoundError('File not found')
     
+    if not file_path.lower().endswith('.csv'):
+        raise ValueError('invalid file extension. expected a CSV file.')
+    
+    max_file_size = 10 * 1024 * 1024
+    if os.path.getsize(file_path) > max_file_size:
+        raise ValueError('File size exceeds the limit (10MB).')
+    ##Date,Time,Location,Operator,Flight #,Route,Type,Registration,cn/In,Aboard,Fatalities,Ground,Summary
+    expected_columns = ['Date', 'Time', 'Location', 'Operator', 'Flight #', 'Route', 'Type', 'Registration', 'cn/In', 'Aboard', 'Fatalities', 'Ground', 'Summary']
+    df = pd.read_csv(file_path)
+    if not all(col in df.columns for col in expected_columns):
+        raise ValueError('CSV file does not contain expected columns')
+
+def sanitize_path(file_path):
+    sanitized_path = os.path.abspath(os.path.join(base_directory, file_path))
+    if not sanitized_path.startswith(base_directory):
+        raise ValueError('Invalid file path')
+    return sanitized_path
+
+def read_sanitized_csv(user_input):
+    file_path = sanitize_path(user_input)
+    df = pd.read_csv(file_path)
+    return df
+
+user_input = input ("enter file name:")
+try:
+    df = read_sanitized_csv(user_input)
+    print(df.head())  # Displaying a preview of the DataFrame
+except ValueError as e:
+    print(f"Error: {e}")
 
 
-file_path= r"C:\Users\vanguard\OneDrive\Documents\GitHub\OOP-Visualization\AirplaneCrashes.csv"
-df = pd.read_csv(file_path)
-
-visualizer = AirplaneCrashes(df)
+visualizer = AirplaneCrashes(df, base_directory)
 
 try:
     visualizer.visualization_operator(top_n=20) 
